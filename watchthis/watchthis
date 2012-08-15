@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+#last_modified/1 :: (dir_path) -> echo(timestamp)
+last_modified() { 
+  [ -d ${1} ] || exit 0
+  echo  "`stat --format '%Y %n' $(ls -t $(find ${1} -type f) | head -n 1)`"
+}
+
+#log/1 :: (message) -> nothing
+log() {
+  echo "`date`: ${1}" >> /tmp/watchthis
+}
+
+#module should contains following functions:
+# wt_run/0 :: () -> echo(pid())
+# * wt_run that should build or/and run any commands 
+# should assign pid of started process to P_PID
+# wt_kill/1 :: (Return_Val=pid())
+# * wt_kill that should kill/stop services started in previous function
+P_PID=
+[ -f ${2} ] && source ${2}
+wt_kill 'all'
+wt_run 
+
+OLD=$(last_modified ${1})
+while true
+do
+  NEW=$(last_modified ${1})
+  if  [ "$NEW" == "$OLD" ]; then
+    log "No changes"
+  else
+    log "Changed $NEW"
+    wt_kill $P_PID
+    wt_run
+    OLD=$NEW
+  fi
+  sleep 3
+done
